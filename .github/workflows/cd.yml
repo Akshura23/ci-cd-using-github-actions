@@ -1,5 +1,8 @@
 name: CD
 
+run-name: >
+  Publish → ${{ github.event.workflow_run.name || format('Manual Publish {0}', github.run_number) }}
+
 on:
   workflow_run:
     workflows:

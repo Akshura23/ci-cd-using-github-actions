@@ -1,5 +1,7 @@
 name: CI
 
+run-name: CI ${{ format('{0}.0.0.{1}', '2026', github.run_number) }}
+
 on:
   push:
     branches:

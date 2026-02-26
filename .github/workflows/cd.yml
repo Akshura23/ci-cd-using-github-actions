@@ -1,7 +1,7 @@
 name: CD
 
 run-name: >
-  Publish → ${{ github.event.workflow_run.name || format('Manual Publish {0}', github.run_number) }}
+  CD → ${{ github.event.workflow_run.name || format('Manual Deploy {0}', github.run_number) }}
 
 on:
   workflow_run:
@@ -12,6 +12,16 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      ci_run_id:
+        description: 'CI Workflow Run ID (optional - uses latest if empty)'
+        required: false
+        type: string
+      branch:
+        description: 'Branch to deploy (default: main)'
+        required: false
+        type: string
+        default: 'main'
 
 jobs:
   deploy:
@@ -23,6 +33,26 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || 'main' }}
+
+      - name: Log deployment info
+        run: |
+          echo "========== Deployment Info =========="
+          echo "Triggered by: ${{ github.event_name }}"
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Deployment Type: Manual"
+            echo "Branch: ${{ inputs.branch || 'main' }}"
+            if [ -n "${{ inputs.ci_run_id }}" ]; then
+              echo "CI Run ID: ${{ inputs.ci_run_id }}"
+            fi
+          else
+            echo "Deployment Type: Automatic (CI Success)"
+            echo "CI Run Name: ${{ github.event.workflow_run.name }}"
+            echo "CI Run ID: ${{ github.event.workflow_run.id }}"
+            echo "CI Run Number: ${{ github.event.workflow_run.run_number }}"
+          fi
+          echo "===================================="
 
       - name: Deploy application
         run: echo "Deploying application..."

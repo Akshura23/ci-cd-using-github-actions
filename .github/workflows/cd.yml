@@ -1,9 +1,18 @@
 name: CD
 
 run-name: >
-  CD → ${{ github.event.workflow_run.name || format('Manual Deploy {0}', github.run_number) }}
+  ${{ 
+    github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      ? format('CD Release → {0} [Production]', github.ref_name)
+      : github.event_name == 'workflow_dispatch'
+      ? format('CD Manual Deploy → v{0} [Build {1}]', inputs.version || '0.0.1-SNAPSHOT', github.run_number)
+      : format('CD Deploy → {0} [CI {1}]', github.event.workflow_run.name || 'Unknown', github.event.workflow_run.run_number || '')
+  }}
 
 on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
   workflow_run:
     workflows:
       - "CI"
@@ -13,46 +22,86 @@ on:
       - main
   workflow_dispatch:
     inputs:
+      version:
+        description: 'Version to deploy (e.g., 1.2.3 or 1.3.0-rc.1)'
+        required: true
+        type: string
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: choice
+        options:
+          - Production
+          - Staging
+          - Development
+        default: 'Production'
       ci_run_id:
-        description: 'CI Workflow Run ID (optional - uses latest if empty)'
+        description: 'CI Workflow Run ID (optional)'
         required: false
         type: string
-      branch:
-        description: 'Branch to deploy (default: main)'
-        required: false
-        type: string
-        default: 'main'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.branch || 'main' }}
+          ref: ${{ inputs.branch || github.ref }}
+
+      - name: Extract deployment info
+        id: deploy_info
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"  # Remove 'v' prefix
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+            echo "environment=Production" >> $GITHUB_OUTPUT
+            echo "trigger_type=Tag Release" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "trigger_type=Manual Deploy" >> $GITHUB_OUTPUT
+          else
+            echo "version=SNAPSHOT" >> $GITHUB_OUTPUT
+            echo "environment=Staging" >> $GITHUB_OUTPUT
+            echo "trigger_type=CI Success" >> $GITHUB_OUTPUT
+          fi
 
       - name: Log deployment info
         run: |
-          echo "========== Deployment Info =========="
-          echo "Triggered by: ${{ github.event_name }}"
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "Deployment Type: Manual"
-            echo "Branch: ${{ inputs.branch || 'main' }}"
-            if [ -n "${{ inputs.ci_run_id }}" ]; then
-              echo "CI Run ID: ${{ inputs.ci_run_id }}"
+          echo "========== Deployment Information =========="
+          echo "Trigger Type: ${{ steps.deploy_info.outputs.trigger_type }}"
+          echo "Version: ${{ steps.deploy_info.outputs.version }}"
+          echo "Environment: ${{ steps.deploy_info.outputs.environment }}"
+          echo "Event Name: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Ref Name: ${{ github.ref_name }}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ -n "${{ inputs.ci_run_id }}" ]]; then
+              echo "Linked CI Run ID: ${{ inputs.ci_run_id }}"
             fi
-          else
-            echo "Deployment Type: Automatic (CI Success)"
+          elif [[ "${{ github.event_name }}" == "workflow_run" ]]; then
             echo "CI Run Name: ${{ github.event.workflow_run.name }}"
             echo "CI Run ID: ${{ github.event.workflow_run.id }}"
             echo "CI Run Number: ${{ github.event.workflow_run.run_number }}"
           fi
-          echo "===================================="
+          echo "=========================================="
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v6
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
       - name: Deploy application
-        run: echo "Deploying application..."
+        run: |
+          echo "Deploying version: ${{ steps.deploy_info.outputs.version }}"
+          echo "To environment: ${{ steps.deploy_info.outputs.environment }}"
+          echo "Deployment started..."
+          # Add actual deployment commands here
+          echo "Deployment completed successfully!"

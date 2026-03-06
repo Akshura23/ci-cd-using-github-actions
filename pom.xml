@@ -13,19 +13,26 @@
 
     <groupId>com.example</groupId>
     <artifactId>hello-world</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>${project.version.tag}</version>
     <packaging>jar</packaging>
     <name>hello-world</name>
     <description>Spring Boot Hello World application</description>
 
     <properties>
         <java.version>17</java.version>
+        <project.version.tag>0.0.1-SNAPSHOT</project.version.tag>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.8.5</version>
         </dependency>
 
         <dependency>

@@ -1,0 +1,11 @@
+2024-01-15 09:00:00.123 INFO [main] Starting HelloWorld Application
+2024-01-15 09:00:00.456 DEBUG [main] Loading configuration from application.properties
+2024-01-15 09:00:00.789 INFO [main] Spring Boot v3.4.3 detected
+2024-01-15 09:00:01.023 INFO [main] Initializing Spring embedded WebApplicationContext
+2024-01-15 09:00:01.456 INFO [main] ROOT context initialization completed
+2024-01-15 09:00:01.789 INFO [main] Tomcat initialized with port(s): 8080
+2024-01-15 09:00:02.123 INFO [main] Netty started on port(s): 8080
+2024-01-15 09:00:02.456 INFO [main] Application started in 2.567 seconds (JVM running for 3.890s)
+2024-01-15 09:00:02.789 INFO [main] Active profiles: [prod]
+2024-01-15 09:00:03.456 INFO [main] Database connection pool initialized
+

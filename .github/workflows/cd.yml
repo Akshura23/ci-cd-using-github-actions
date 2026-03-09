@@ -2,7 +2,7 @@ name: CD
 
 run-name: >
   ${{
-    github.event_name == 'push'
+      github.event_name == 'push'
       && format('Production Release {0}', github.ref_name)
       || format('Deploy CI #{0}', github.event.workflow_run.run_number)
   }}
@@ -15,7 +15,7 @@ on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
-#    branches: [main]
+    branches: [main]
 
 jobs:
   deploy:
@@ -23,18 +23,40 @@ jobs:
 
     if: >
       ${{
-        github.event_name == 'push' ||
-        (github.event_name == 'workflow_run' &&
-         github.event.workflow_run.conclusion == 'success')
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.conclusion == 'success'
       }}
 
     steps:
 
+      # Determine which CI run to pull artifact from
+      - name: Determine run ID
+        id: determine_run
+        run: |
+          USER_RUN_ID="${{ github.event.inputs.run_id }}"
+          TRIGGER_RUN_ID="${{ github.event.workflow_run.id }}"
+          
+          if [ -n "$USER_RUN_ID" ]; then
+            RUN_ID=$USER_RUN_ID
+          else
+            RUN_ID=$TRIGGER_RUN_ID
+          fi
+          
+          if [ -z "$RUN_ID" ]; then
+            echo "❌ No run ID available"
+            exit 1
+          fi
+          
+          echo "Using run ID: $RUN_ID"
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+      # Download artifact from CI
       - name: Download artifact from CI
         uses: actions/download-artifact@v4
         with:
-          run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.determine_run.outputs.run_id }}
           path: artifact
 
       - name: Show artifact
@@ -44,3 +66,15 @@ jobs:
         run: |
           JAR=$(ls artifact/**/*.jar | head -n 1)
           echo "Deploying $JAR..."
+          
+          # Summary
+          - name: Deployment summary
+            run: |
+              echo "## 🚀 Deployment Complete" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+              echo "|-----|------|" >> $GITHUB_STEP_SUMMARY
+              echo "| Artifact | ${{ steps.find_jar.outputs.jar }} |" >> $GITHUB_STEP_SUMMARY
+              echo "| CI Run | ${{ steps.determine_run.outputs.run_id }} |" >> $GITHUB_STEP_SUMMARY
+              echo "| Trigger | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY

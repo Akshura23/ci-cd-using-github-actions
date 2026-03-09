@@ -37,7 +37,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Show artifact
-        run: ls artifact/*.jar
+        run: ls /*.jar
 
       - name: Deploy
         run: |

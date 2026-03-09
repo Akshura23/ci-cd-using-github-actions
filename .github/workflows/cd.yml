@@ -8,9 +8,12 @@ run-name: >
   }}
 
 on:
-#  push:
-#    tags:
-#      - 'v*'
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "CI Run ID (optional)"
+        required: false
+        type: string
 
   workflow_run:
     workflows: ["CI"]

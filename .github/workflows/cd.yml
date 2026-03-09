@@ -35,12 +35,12 @@ jobs:
         with:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifact
 
       - name: Show artifact
-        run: ls -la
+        run: ls artifact/*.jar
 
       - name: Deploy
         run: |
-          echo "Deploying application..."
-          ls *.jar
-          echo "Deployment finished"
+          JAR=$(ls artifact/*.jar | head -n 1)
+          echo "Deploying $JAR..."

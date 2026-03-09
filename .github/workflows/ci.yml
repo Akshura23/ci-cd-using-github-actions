@@ -1,10 +1,10 @@
 name: CI
 
 run-name: >
-  ${{ 
-    github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') 
-      && format('Release {0}', github.ref_name)
-      || format('Build #{0}', github.run_number)
+  ${{
+    github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      && format('CI Release {0}', github.ref_name)
+      || format('CI Build #{0}', github.run_number)
   }}
 
 on:
@@ -74,6 +74,11 @@ jobs:
 
           echo "Resolved Version: $VERSION"
 
+      - name: Show resolved version
+        run: |
+          echo "Version: ${{ steps.version.outputs.version }}"
+          echo "Is release: ${{ steps.version.outputs.is_release }}"
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -83,10 +88,15 @@ jobs:
       - name: Build and test with Maven
         run: |
           mvn clean install \
-            -Dproject.version.tag=${{ steps.version.outputs.version }}
+            -Drevision=${{ steps.version.outputs.version }}
+
+      - name: Rename artifact
+        run: |
+          JAR=$(ls target/*.jar | grep -v "sources" | grep -v "javadoc" | head -n 1)
+          mv "$JAR" "target/app-${{ steps.version.outputs.version }}.jar"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
-          name: build-${{ steps.version.outputs.version }}
-          path: target/*.jar
+          name: app-${{ steps.version.outputs.version }}
+          path: target/app-${{ steps.version.outputs.version }}.jar

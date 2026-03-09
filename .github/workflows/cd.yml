@@ -35,7 +35,6 @@ jobs:
         with:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: artifact
 
       - name: Show artifact
         run: ls artifact/*.jar

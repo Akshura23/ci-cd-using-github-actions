@@ -8,14 +8,14 @@ run-name: >
   }}
 
 on:
-  push:
-    tags:
-      - 'v*'
+#  push:
+#    tags:
+#      - 'v*'
 
   workflow_run:
     workflows: ["CI"]
     types: [completed]
-    branches: [main]
+#    branches: [main]
 
 jobs:
   deploy:
